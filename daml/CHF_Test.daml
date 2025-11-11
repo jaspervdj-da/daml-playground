@@ -1,0 +1,53 @@
+module CHF_Test where
+
+import Daml.Script
+
+import CHF
+
+simple_test = do
+    alice <- allocateParty "alice"
+    bob <- allocateParty "bob"
+
+    aliceCHF <- submit alice do
+      createCmd CHF with
+        amount = 10000.0
+        owner = alice
+
+    bobAccept <- submit bob do
+      createCmd CHFAccept with
+        owner = bob
+        from = alice
+
+    -- Can't transfer more than than what is in the account.
+    submitMustFail alice do
+      exerciseCmd bobAccept CHFAccept_TransferAmount with
+        chf = aliceCHF
+        amount = 10001.0
+
+    (bobCHF, newAliceCHF) <- submit alice do
+      exerciseCmd bobAccept CHFAccept_TransferAmount with
+        chf = aliceCHF
+        amount = 2000.0
+
+    -- Can't transfer the same CHF twice.
+    submitMustFail alice do
+      exerciseCmd bobAccept CHFAccept_TransferAmount with
+        chf = aliceCHF
+        amount = 2000.0
+
+    pure ()
+
+    {-
+    bobCHF <- submit alice do
+      exerciseCmd bobAccept CHFAccept_Transfer with
+        chf = aliceCHF
+
+    -- Can't transfer the same CHF twice.
+    submitMustFail alice do
+      exerciseCmd bobAccept CHFAccept_Transfer with
+        chf = aliceCHF
+
+    -- Can't archive it again.
+    submitMustFail alice do
+      archiveCmd aliceCHF
+    -}

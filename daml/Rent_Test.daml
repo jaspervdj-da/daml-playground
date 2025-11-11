@@ -1,0 +1,21 @@
+module Rent_Test where
+
+import Daml.Script
+
+import Rent
+
+simple_test = do
+    alice <- allocateParty "alice"
+    bob <- allocateParty "bob"
+
+    proposal <- submit alice do
+      createCmd RentProposal with
+        landlord = alice
+        tenant = bob
+        monthly = 2000.0
+        address = "Bahnhofstrasse 1"
+
+    contract <- submit bob do
+      exerciseCmd proposal RentProposal_Accept
+
+    pure ()

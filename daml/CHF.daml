@@ -1,0 +1,57 @@
+module CHF where
+
+template CHF
+  with
+    owner : Party
+    amount : Decimal
+  where
+    signatory owner
+
+    choice CHF_Transfer : (ContractId CHF, ContractId CHF)
+      with
+        to : Party
+        transferAmount : Decimal
+      controller owner
+      do
+        let remainingAmount = amount - transferAmount
+        assert $ remainingAmount > 0.0
+        remaining <- create this with
+          amount = remainingAmount
+        transfer <- create this with
+          amount = transferAmount
+        pure (transfer, remaining)
+
+template CHFAccept
+  with
+    owner : Party
+    from : Party
+  where
+    signatory owner
+    observer from
+
+    nonconsuming choice CHFAccept_Transfer : ContractId CHF
+      with
+        chf : ContractId CHF
+      controller from
+      do
+        asset <- fetch chf
+        assert $ asset.owner == from
+        assert $ asset.amount > 0.0
+        archive chf
+        create CHF with
+          owner = owner
+          amount = asset.amount
+
+    nonconsuming choice CHFAccept_TransferAmount
+      : (ContractId CHF, ContractId CHF)
+      with
+        chf : ContractId CHF
+        amount : Decimal
+      controller from
+      do
+        asset <- fetch chf
+        assert $ asset.owner == from
+        assert $ asset.amount > 0.0
+        exercise chf CHF_Transfer with
+          to = owner
+          transferAmount = amount

@@ -1,0 +1,30 @@
+module Rent where
+
+template RentProposal
+  with
+    landlord : Party
+    address : Text
+    monthly : Decimal
+    tenant : Party
+  where
+    signatory landlord
+    observer tenant
+
+    choice RentProposal_Accept : ContractId Rent
+      controller tenant
+      do
+        create Rent with
+          landlord
+          tenant
+
+template Rent
+  with
+    landlord : Party
+    tenant : Party
+  where
+    signatory landlord, tenant
+
+    {-
+    nonconsuming choice TakeRent : ()
+      controller landlord
+      -}
