@@ -1,8 +1,11 @@
 module Rent where
 
+import CHF
+
 template RentProposal
   with
     landlord : Party
+    landlordAccept : ContractId CHFAccept
     address : Text
     monthly : Decimal
     tenant : Party
@@ -11,20 +14,39 @@ template RentProposal
     observer tenant
 
     choice RentProposal_Accept : ContractId Rent
+      with
+        funds : ContractId CHF
       controller tenant
       do
+        -- TODO: verify landlordAccept belongs to landlord
+        disclosedFunds <- exercise funds CHF_Disclose with
+          to = landlord
         create Rent with
           landlord
+          landlordAccept
+          address
+          monthly
           tenant
+          funds = disclosedFunds
 
 template Rent
   with
     landlord : Party
+    landlordAccept : ContractId CHFAccept
+    address : Text
     tenant : Party
+    monthly : Decimal
+    funds : ContractId CHF
   where
     signatory landlord, tenant
 
-    {-
-    nonconsuming choice TakeRent : ()
+    choice Rent_Take : ContractId Rent
       controller landlord
-      -}
+      do
+        (_, optRemainingFunds) <- exercise landlordAccept CHFAccept_Transfer with
+          chf = funds
+          amount = monthly
+        case optRemainingFunds of
+          None -> error "ok that doesnt work"
+          Some remainingFunds -> create this with
+            funds = remainingFunds

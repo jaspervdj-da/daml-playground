@@ -4,22 +4,37 @@ template CHF
   with
     owner : Party
     amount : Decimal
+    observers : [Party]
   where
     signatory owner
+    observer observers
+    ensure amount > 0.0  -- Don't allow "empty" CHFs
 
-    choice CHF_Transfer : (ContractId CHF, ContractId CHF)
+    choice CHF_Disclose : ContractId CHF
+      with
+        to : Party
+      controller owner
+      do
+        create this with
+          observers = to :: this.observers
+
+    choice CHF_Transfer : (ContractId CHF, Optional (ContractId CHF))
       with
         to : Party
         transferAmount : Decimal
-      controller owner
+      controller to, owner
       do
         let remainingAmount = amount - transferAmount
-        assert $ remainingAmount > 0.0
-        remaining <- create this with
-          amount = remainingAmount
+        assert $ remainingAmount >= 0.0
         transfer <- create this with
+          owner = to
           amount = transferAmount
-        pure (transfer, remaining)
+        if remainingAmount > 0.0 then do
+            remaining <- create this with
+              amount = remainingAmount
+            pure (transfer, Some remaining)
+        else do
+            pure (transfer, None)
 
 template CHFAccept
   with
@@ -29,21 +44,8 @@ template CHFAccept
     signatory owner
     observer from
 
-    nonconsuming choice CHFAccept_Transfer : ContractId CHF
-      with
-        chf : ContractId CHF
-      controller from
-      do
-        asset <- fetch chf
-        assert $ asset.owner == from
-        assert $ asset.amount > 0.0
-        archive chf
-        create CHF with
-          owner = owner
-          amount = asset.amount
-
-    nonconsuming choice CHFAccept_TransferAmount
-      : (ContractId CHF, ContractId CHF)
+    nonconsuming choice CHFAccept_Transfer
+      : (ContractId CHF, Optional (ContractId CHF))
       with
         chf : ContractId CHF
         amount : Decimal

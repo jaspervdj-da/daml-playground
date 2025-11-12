@@ -3,19 +3,37 @@ module Rent_Test where
 import Daml.Script
 
 import Rent
+import CHF
+import CHF_Test
 
 simple_test = do
     alice <- allocateParty "alice"
     bob <- allocateParty "bob"
 
-    proposal <- submit alice do
-      createCmd RentProposal with
-        landlord = alice
-        tenant = bob
-        monthly = 2000.0
-        address = "Bahnhofstrasse 1"
+    aliceCHF <- submit alice do
+        createCmd CHF with
+            owner = alice
+            amount = 10000.0
+            observers = []
+
+    bobAccept <- submit bob do
+        createCmd CHFAccept with
+            owner = bob
+            from = alice
+
+    proposal <- submit bob do
+        createCmd RentProposal with
+            landlord = bob
+            landlordAccept = bobAccept
+            tenant = alice
+            monthly = 2000.0
+            address = "Bahnhofstrasse 1"
+
+    contract <- submit alice do
+        exerciseCmd proposal RentProposal_Accept with
+            funds = aliceCHF
 
     contract <- submit bob do
-      exerciseCmd proposal RentProposal_Accept
+        exerciseCmd contract Rent_Take
 
     pure ()
