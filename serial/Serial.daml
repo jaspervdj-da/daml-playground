@@ -1,0 +1,26 @@
+module Serial where
+
+data Currency = Currency with
+  admin : Party
+  instrument : Text
+    deriving (Eq, Show)
+
+instance Serializable Currency
+
+data BadCurrency = BadCurrency with
+  admin : Party
+  instrument : () -> ()
+
+instance Show BadCurrency where show _ = "BadCurrency"
+instance Eq BadCurrency where _ == _ = True
+
+-- This should error regardless of whether or not it occurs in a template
+instance Serializable BadCurrency
+
+template Asset
+  with
+    amount : Decimal
+    party : Party
+    currency : Currency
+  where
+    signatory party

@@ -1,0 +1,7 @@
+sdk-version: 0.0.0
+name: daml-rent
+version: 1.0.0
+source: Serial.daml
+dependencies:
+- daml-prim
+- daml-stdlib
