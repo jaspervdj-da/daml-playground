@@ -1,0 +1,9 @@
+sdk-version: 0.0.0
+name: empty-interface
+version: 1.0.0
+source: EmptyInterface.daml
+dependencies:
+- daml-prim
+- daml-stdlib
+build-options:
+- '-Wupgrade-interfaces'
